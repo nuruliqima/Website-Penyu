@@ -3,169 +3,359 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lima Putra Pesisir - Konservasi Penyu Lowita</title>
-    <!-- Tailwind CSS for styling -->
+    <title>Monitoring Inkubator Telur Penyu</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate, Amber & Blue -->
+    <!-- Application Structure Plan: Aplikasi ini dirancang sebagai sistem monitoring real-time satu halaman. Struktur informasinya dibagi menjadi: 1) Kontrol Mode (Jantan/Betina/Normal) sebagai input setpoint untuk mikrokontroler. 2) Status Perangkat untuk indikator visual aktuator (Lampu/Kipas). 3) Gauges untuk pembacaan instan suhu dan kelembaban. 4) Grafik Tren interaktif yang mendukung scroll horizontal dengan batas 25 titik data. Struktur ini dipilih agar pengguna bisa melihat data histori yang lebih panjang tanpa membuat grafik terlihat penuh/menumpuk. -->
+    <!-- Visualization & Content Choices: 1) Doughnut Chart (Canvas) untuk Gauge Suhu/Kelembaban. 2) Status Indicators (HTML/CSS) untuk ON/OFF aktuator. 3) Line Chart (Canvas) di dalam container scrollable -> Memberikan ruang lebih luas untuk titik data sehingga tidak menumpuk, dengan interaksi tooltip saat titik ditekan. Update dilakukan setiap 5 detik. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .btn-mode {
+            transition: all 0.2s ease;
+            border: 2px solid #e2e8f0;
+            font-weight: 700;
+        }
+        .btn-active {
+            background-color: #334155;
+            color: rgb(243, 0, 0);
+            border-color: #334155;
+            box-shadow: 0 4px 12px rgba(51, 65, 85, 0.25);
+        }
+        .gauge-container {
+            position: relative;
+            width: 100%;
+            height: 150px;
+        }
+        .gauge-text {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.75rem;
+            font-weight: 800;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        /* Style untuk grafik yang bisa digeser */
+        .chart-scroll-container {
+            width: 100%;
+            overflow-x: auto;
+            position: relative;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 #f1f5f9;
+        }
+        .chart-scroll-container::-webkit-scrollbar {
+            height: 6px;
+        }
+        .chart-scroll-container::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .chart-scroll-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+        .chart-inner-wrapper {
+            height: 350px;
+            min-width: 100%; /* Akan diperbarui via JS berdasarkan jumlah data */
+        }
+    </style>
 </head>
-<body class="bg-slate-50">
+<body class="p-4 md:p-8">
 
-    <!-- Header Section -->
-    <header id="main-header" class="fixed top-0 left-0 right-0 z-50">
-        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="#" class="flex items-center space-x-3">
-                <img src="logo.jpg" alt="Logo Lima Putra Pesisir" class="h-12 w-12 rounded-full shadow-md object-cover">
-                <span id="header-title" class="text-xl font-bold text-white transition-colors duration-300">LIMA PUTRA PESISIR</span>
-            </a>
-            <div class="hidden md:flex items-center space-x-4">
-                <a href="#home" class="nav-button">Home</a>
-                <a href="#event" class="nav-button">Event</a>
-                <a href="#tentang-kami" class="nav-button">Tentang Kami</a>
-                <a href="#donasi" class="nav-button">Donasi</a>
-                <a href="#kontak" class="nav-button">Kontak</a>
-            </div>
-            <div class="hidden md:flex items-center space-x-5">
-                 <a href="https://www.instagram.com/lima_putra.pesisir/" target="_blank" id="header-instagram" class="text-white hover:text-gray-200 transition-colors duration-300"><i class="fab fa-instagram fa-lg"></i></a>
-                 <a href="https://www.youtube.com/channel/UCa2XKCFfqnbMTtNWlmiCyLg" target="_blank" id="header-youtube" class="text-white hover:text-gray-200 transition-colors duration-300"><i class="fab fa-youtube fa-lg"></i></a>
-                 <a href="https://www.facebook.com/limaputrapesisir/" target="_blank" id="header-facebook" class="text-white hover:text-gray-200 transition-colors duration-300"><i class="fab fa-facebook fa-lg"></i></a>
-            </div>
-            <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
-                <i class="fas fa-bars fa-lg"></i>
-            </button>
-        </nav>
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-white px-6 pt-4 pb-4 space-y-3 rounded-b-lg shadow-lg">
-            <a href="#home" class="nav-button-mobile">Home</a>
-            <a href="#event" class="nav-button-mobile">Event</a>
-            <a href="#tentang-kami" class="nav-button-mobile">Tentang Kami</a>
-            <a href="#donasi" class="nav-button-mobile">Donasi</a>
-            <a href="#kontak" class="nav-button-mobile">Kontak</a>
-        </div>
-    </header>
-
-    <main>
-        <!-- Hero Section -->
-        <section id="home" class="relative h-screen bg-cover bg-center flex items-center justify-center" style="background-image: url('https://source.unsplash.com/1920x1080/?turtle,beach,sunrise');">
-            <div class="absolute inset-0 bg-gradient-to-t from-emerald-500/30 to-transparent"></div>
-            <div class="relative z-10 text-center text-white px-4">
-                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-800" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Melestarikan Penyu, Menjaga Masa Depan Laut</h1>
-                <p class="mt-4 max-w-3xl mx-auto text-lg md:text-xl text-slate-700">
-                    Bergabunglah dengan Komunitas Lima Putra Pesisir dalam misi mulia melindungi habitat penyu di Pantai Lowita, Sulawesi Selatan.
-                </p>
-                <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <a href="#event" class="w-full sm:w-auto inline-block px-10 py-4 bg-pink-500 text-white font-bold rounded-full hover:bg-pink-600 transition duration-300 shadow-lg transform hover:scale-105">Jelajahi Kegiatan</a>
-                    <a href="#donasi" class="w-full sm:w-auto inline-block px-10 py-4 bg-emerald-500 text-white font-bold rounded-full hover:bg-emerald-600 transition duration-300 shadow-lg transform hover:scale-105">Donasi Sekarang</a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Event Section -->
-        <section id="event" class="py-20 bg-white">
-            <div class="container mx-auto px-6">
-                 <div class="text-center mb-12">
-                    <h2 class="text-4xl font-bold text-slate-800">Event & Kegiatan Kami</h2>
-                    <p class="mt-2 text-slate-600">Aksi nyata kami untuk konservasi.</p>
-                </div>
-                <div id="event-slider" class="relative overflow-hidden">
-                    <div id="event-container" class="flex transition-transform duration-500 ease-in-out">
-                        <!-- Events will be populated by JavaScript -->
-                    </div>
-                </div>
-                 <div class="flex justify-center mt-8 space-x-3">
-                    <button id="prev-event" class="slider-btn"><i class="fas fa-arrow-left"></i></button>
-                    <button id="next-event" class="slider-btn"><i class="fas fa-arrow-right"></i></button>
-                </div>
-            </div>
-        </section>
-
-        <!-- About Us Section -->
-        <section id="tentang-kami" class="py-20 bg-emerald-50">
-            <div class="container mx-auto px-6">
-                <div class="grid md:grid-cols-2 gap-12 items-center">
-                    <div class="order-2 md:order-1">
-                        <div class="rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-500">
-                             <img src="lpp.jpg" alt="Tim Lima Putra Pesisir" class="w-full h-full object-cover">
-                        </div>
-                    </div>
-                    <div class="order-1 md:order-2">
-                        <h2 class="text-4xl font-bold text-slate-800 mb-4">Profil Lima Putra Pesisir</h2>
-                        <div class="space-y-4 text-slate-700 leading-relaxed">
-                             <p>
-                                Lima Putra Pesisir adalah kelompok masyarakat yang bergerak di bidang pelestarian lingkungan, khususnya konservasi penyu dan habitatnya di Pantai Lowita, Desa Wiringtasi, Kecamatan Suppa, Pinrang, Sulawesi Selatan.
-                            </p>
-                            <p>
-                                Berawal dari kepedulian terhadap banyaknya telur penyu yang diambil, kami aktif melakukan patroli, merelokasi sarang telur ke tempat yang aman (hatchery semi-alami), dan melepasliarkan tukik kembali ke laut. Kami juga aktif dalam kegiatan edukasi, transplantasi terumbu karang, dan penanaman mangrove untuk menjaga ekosistem pesisir.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+    <div class="max-w-6xl mx-auto">
         
-        <!-- Donation Section -->
-        <section id="donasi" class="py-20 bg-white">
-            <div class="container mx-auto px-6">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl font-bold text-slate-800">Dukung Aksi Kami</h2>
-                    <p class="mt-2 text-slate-600">Setiap donasi Anda sangat berarti untuk kelestarian penyu dan ekosistem pesisir.</p>
-                </div>
-                <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-10 items-center bg-emerald-50 p-8 rounded-2xl shadow-lg">
-                    <div class="text-slate-700">
-                        <h3 class="text-2xl font-bold mb-4 text-emerald-700">Mengapa Donasi Anda Penting?</h3>
-                        <p class="mb-4">
-                            Donasi Anda akan digunakan untuk mendukung berbagai kegiatan konservasi, seperti patroli pantai, pemindahan sarang telur, penyediaan peralatan hatchery, hingga program edukasi bagi masyarakat lokal dan pelajar.
-                        </p>
-                        <p>
-                            Bersama, kita bisa memastikan setiap tukik memiliki kesempatan untuk kembali ke laut dan menjaga populasi penyu untuk generasi yang akan datang.
-                        </p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-inner text-center">
-                        <h3 class="text-xl font-semibold mb-4 text-slate-800">Salurkan Donasi Anda</h3>
-                        <img src="donasi_qris.png" alt="QRIS Donasi Lima Putra Pesisir" class="mx-auto w-full max-w-[250px] h-auto rounded-lg mb-4">
-                        <p class="font-semibold text-slate-600">Atau transfer melalui:</p>
-                        <p class="mt-1 text-lg font-bold text-emerald-800">BRI: 066401018785502</p>
-                        <p class="text-md text-slate-500">(a.n. Renaldi)</p>
-                    </div>
-                </div>
+        <!-- Header & Control Buttons -->
+        <header class="mb-8 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-6 uppercase tracking-tight">Sistem Monitoring Inkubator</h1>
+            <div class="flex flex-wrap justify-center gap-3">
+                <button id="btn-jantan" onclick="updateMode('jantan')" class="btn-mode px-6 py-3 rounded-2xl text-sm bg-white hover:border-slate-400">
+                    MODE JANTAN (< 27°C)
+                </button>
+                <button id="btn-betina" onclick="updateMode('betina')" class="btn-mode px-6 py-3 rounded-2xl text-sm bg-white hover:border-slate-400">
+                    MODE BETINA (< 30°C)
+                </button>
+                <button id="btn-normal" onclick="updateMode('normal')" class="btn-mode px-6 py-3 rounded-2xl text-sm bg-white hover:border-slate-400">
+                    MODE NORMAL (29°C)
+                </button>
             </div>
-        </section>
+            <p id="info-status" class="mt-4 text-slate-500 font-medium"></p>
+        </header>
 
-        <!-- Contact Section -->
-        <section id="kontak" class="py-20 bg-emerald-500 text-white">
-            <div class="container mx-auto px-6 text-center">
-                <h2 class="text-4xl font-bold mb-4">Hubungi Kami</h2>
-                <p class="max-w-xl mx-auto mb-8 text-emerald-100">
-                    Tertarik untuk menjadi volunteer, donasi, atau ingin tahu lebih banyak tentang kegiatan kami? Jangan ragu untuk menghubungi kami.
-                </p>
-                <div class="flex justify-center items-center space-x-6 sm:space-x-8">
-                     <a href="https://www.instagram.com/lima_putra.pesisir/" target="_blank" class="social-link"><i class="fab fa-instagram fa-2x"></i></a>
-                     <a href="https://www.youtube.com/channel/UCa2XKCFfqnbMTtNWlmiCyLg" target="_blank" class="social-link"><i class="fab fa-youtube fa-2x"></i></a>
-                     <a href="https://www.facebook.com/limaputrapesisir/" target="_blank" class="social-link"><i class="fab fa-facebook fa-2x"></i></a>
-                     <a href="https://wa.me/6285348339828" target="_blank" class="social-link"><i class="fab fa-whatsapp fa-2x"></i></a>
-                     <a href="mailto:limaputrapesisir@gmail.com" class="social-link"><i class="fas fa-envelope fa-2x"></i></a>
-                </div>
-                 <div class="mt-12">
-                    <h3 class="text-2xl font-bold mb-4">Lokasi Kami</h3>
-                    <div class="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
-                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.291771124408!2d119.5786311740924!3d-4.717148895180631!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dbe7601f00885f1%3A0x6b7776b7e0d37e6d!2sRumah%20Penyu%20Pantai%20Lowita!5e0!3m2!1sen!2sid!4v1729399885834!5m2!1sen!2sid" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <!-- Main Dashboard Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Card: Status Perangkat -->
+            <div class="card flex flex-col justify-center">
+                <h3 class="text-center text-slate-500 font-bold uppercase text-xs tracking-widest mb-6">Status Perangkat</h3>
+                <div class="space-y-6 px-4">
+                    <div class="flex justify-between items-center">
+                        <span class="font-semibold text-slate-600">Lampu Pemanas</span>
+                        <div class="flex items-center gap-2">
+                            <span id="pemanas-dot" class="status-dot bg-slate-300"></span>
+                            <span id="pemanas-label" class="font-bold text-slate-400">OFF</span>
+                        </div>
                     </div>
-                     <p class="mt-4 text-emerald-200">Pantai Lowita, Desa Wiringtasi, Kec. Suppa, Kab. Pinrang, Sulawesi Selatan</p>
+                    <div class="flex justify-between items-center">
+                        <span class="font-semibold text-slate-600">Kipas Sirkulasi</span>
+                        <div class="flex items-center gap-2">
+                            <span class="status-dot bg-emerald-500"></span>
+                            <span class="font-bold text-emerald-600 uppercase">ON</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </section>
-    </main>
-    
-    <!-- Footer -->
-    <footer class="bg-emerald-600 text-white py-6">
-        <div class="container mx-auto px-6 text-center text-emerald-200">
-            <p>&copy; 2025 Lima Putra Pesisir. Dibuat dengan semangat konservasi.</p>
+
+            <!-- Card: Suhu Gauge -->
+            <div class="card text-center">
+                <h3 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4">Suhu Real-Time</h3>
+                <div class="gauge-container">
+                    <canvas id="canvasTemp"></canvas>
+                    <div id="displayTemp" class="gauge-text text-orange-500">--.-°C</div>
+                </div>
+            </div>
+
+            <!-- Card: Kelembaban Gauge -->
+            <div class="card text-center">
+                <h3 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4">Kelembaban Real-Time</h3>
+                <div class="gauge-container">
+                    <canvas id="canvasHumid"></canvas>
+                    <div id="displayHumid" class="gauge-text text-blue-600">--.-%</div>
+                </div>
+            </div>
+
         </div>
-    </footer>
 
-    <script src="script.js"></script>
+        <!-- Section: Tren Data (Scrollable) -->
+        <div class="card">
+            <h3 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4 text-center">Tren Data (Geser untuk Histori)</h3>
+            <div id="scrollContainer" class="chart-scroll-container">
+                <div id="chartScrollArea" class="chart-inner-wrapper">
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </div>
+            <div class="mt-6 flex flex-wrap justify-center gap-8 text-xs font-bold uppercase tracking-wider">
+                <div class="flex items-center gap-2 text-orange-500">
+                    <div class="w-8 h-1 bg-orange-500 rounded-full"></div> Suhu (°C)
+                </div>
+                <div class="flex items-center gap-2 text-blue-600">
+                    <div class="w-8 h-1 bg-blue-600 rounded-full"></div> Kelembaban (%)
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Konfigurasi Target Sesuai Permintaan
+        const MODE_SETTINGS = {
+            'jantan': { target: 26.5, info: "Menjaga suhu ideal Jantan: < 27.0°C" },
+            'betina': { target: 29.5, info: "Menjaga suhu ideal Betina: < 30.0°C" },
+            'normal': { target: 29.0, info: "Menjaga suhu ideal Normal: 29.0°C" }
+        };
+
+        let currentMode = 'normal';
+        let sensorTemp = 25.0; 
+        let sensorHumid = 50.0; 
+        let labels = [];
+        let dataTemp = [];
+        let dataHumid = [];
+        
+        // Batasan data yang ditampilkan diperbarui menjadi 25 titik
+        const MAX_POINTS = 25; 
+
+        // Inisialisasi Chart.js Gauges
+        const initGauge = (id, color, max) => {
+            return new Chart(document.getElementById(id), {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [0, max],
+                        backgroundColor: [color, '#f1f5f9'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '85%',
+                    plugins: { tooltip: { enabled: false }, legend: { display: false } }
+                }
+            });
+        };
+
+        const gaugeT = initGauge('canvasTemp', '#f97316', 50);
+        const gaugeH = initGauge('canvasHumid', '#2563eb', 100);
+
+        // Inisialisasi Grafik Tren
+        const ctxTrend = document.getElementById('historyChart').getContext('2d');
+        const trendChart = new Chart(ctxTrend, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Suhu',
+                        data: dataTemp,
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.05)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#f97316',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        tension: 0.4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Kelembaban',
+                        data: dataHumid,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                        borderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#2563eb',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleFont: { size: 14, weight: '700' },
+                        bodyFont: { size: 14 },
+                        padding: 12,
+                        displayColors: true,
+                        callbacks: {
+                            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}${ctx.datasetIndex === 0 ? '°C' : '%'}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        grid: { display: false }, 
+                        ticks: { font: { weight: '600' } }
+                    },
+                    y: { 
+                        type: 'linear', position: 'left', min: 20, max: 40,
+                        title: { display: true, text: 'Suhu (°C)', font: { weight: 'bold' } }
+                    },
+                    y1: { 
+                        type: 'linear', position: 'right', min: 20, max: 80,
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Kelembaban (%)', font: { weight: 'bold' } }
+                    }
+                }
+            }
+        });
+
+        // Fungsi Ganti Mode
+        window.updateMode = (mode) => {
+            currentMode = mode;
+            document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('btn-active'));
+            document.getElementById(`btn-${mode}`).classList.add('btn-active');
+            document.getElementById('info-status').textContent = MODE_SETTINGS[mode].info;
+        };
+
+        function mainLoop() {
+            const target = MODE_SETTINGS[currentMode].target;
+            
+            // Logika Kontrol Lampu
+            if (sensorTemp < (target - 0.1)) {
+                sensorTemp += Math.random() * 0.2;
+                document.getElementById('pemanas-dot').className = "status-dot bg-amber-500";
+                document.getElementById('pemanas-label').className = "font-bold text-amber-600";
+                document.getElementById('pemanas-label').textContent = "ON";
+            } else {
+                sensorTemp -= Math.random() * 0.08;
+                document.getElementById('pemanas-dot').className = "status-dot bg-slate-300";
+                document.getElementById('pemanas-label').className = "font-bold text-slate-400";
+                document.getElementById('pemanas-label').textContent = "OFF";
+            }
+
+            // Simulasi Kelembaban
+            sensorHumid += (Math.random() - 0.5) * 0.6;
+            if (sensorHumid < 40) sensorHumid += 0.5;
+            if (sensorHumid > 60) sensorHumid -= 0.5;
+
+            // Update Teks & Gauges
+            document.getElementById('displayTemp').textContent = `${sensorTemp.toFixed(1)}°C`;
+            document.getElementById('displayHumid').textContent = `${sensorHumid.toFixed(1)}%`;
+            
+            gaugeT.data.datasets[0].data = [sensorTemp, 50 - sensorTemp];
+            gaugeT.update('none');
+            
+            gaugeH.data.datasets[0].data = [sensorHumid, 100 - sensorHumid];
+            gaugeH.update('none');
+
+            // Update Grafik Tren
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            
+            // Batasi data historis menjadi 25 titik
+            if (labels.length >= MAX_POINTS) {
+                labels.shift();
+                dataTemp.shift();
+                dataHumid.shift();
+            }
+            
+            labels.push(timestamp);
+            dataTemp.push(sensorTemp);
+            dataHumid.push(sensorHumid);
+
+            // Dynamically adjust the width of the chart to prevent overlapping
+            const pointSpacing = 60; // Sedikit lebih renggang karena hanya 25 titik
+            const scrollArea = document.getElementById('chartScrollArea');
+            const calculatedWidth = labels.length * pointSpacing;
+            
+            // Hanya buat lebar bertambah jika melebihi lebar kontainer aslinya
+            if (calculatedWidth > scrollArea.parentElement.offsetWidth) {
+                scrollArea.style.width = calculatedWidth + 'px';
+            } else {
+                scrollArea.style.width = '100%';
+            }
+
+            trendChart.update('none');
+
+            // Auto-scroll ke paling kanan agar data terbaru terlihat
+            const container = document.getElementById('scrollContainer');
+            container.scrollLeft = container.scrollWidth;
+        }
+
+        updateMode('normal');
+        // Interval diperbarui menjadi 5 detik (5000ms)
+        setInterval(mainLoop, 5000); 
+    </script>
 </body>
 </html>
-
