@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lima Putra Pesisir - Konservasi Penyu Lowita</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50">
+
+    <!-- Header Section -->
+    <header id="main-header" class="fixed top-0 left-0 right-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="flex items-center space-x-3">
+                <img src="logo.jpg" alt="Logo Lima Putra Pesisir" class="h-12 w-12 rounded-full shadow-md object-cover">
+                <span id="header-title" class="text-xl font-bold text-white transition-colors duration-300">LIMA PUTRA PESISIR</span>
+            </a>
+            <div class="hidden md:flex items-center space-x-4">
+                <a href="#home" class="nav-button">Home</a>
+                <a href="#event" class="nav-button">Event</a>
+                <a href="#tentang-kami" class="nav-button">Tentang Kami</a>
+                <a href="#donasi" class="nav-button">Donasi</a>
+                <a href="#kontak" class="nav-button">Kontak</a>
+            </div>
+            <div class="hidden md:flex items-center space-x-5">
+                 <a href="https://www.instagram.com/lima_putra.pesisir/" target="_blank" id="header-instagram" class="text-white hover:text-gray-200 transition-colors duration-300"><i class="fab fa-instagram fa-lg"></i></a>
+                 <a href="https://www.youtube.com/channel/UCa2XKCFfqnbMTtNWlmiCyLg" target="_blank" id="header-youtube" class="text-white hover:text-gray-200 transition-colors duration-300"><i class="fab fa-youtube fa-lg"></i></a>
+                 <a href="https://www.facebook.com/limaputrapesisir/" target="_blank" id="header-facebook" class="text-white hover:text-gray-200 transition-colors duration-300"><i class="fab fa-facebook fa-lg"></i></a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-white focus:outline-none">
+                <i class="fas fa-bars fa-lg"></i>
+            </button>
+        </nav>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white px-6 pt-4 pb-4 space-y-3 rounded-b-lg shadow-lg">
+            <a href="#home" class="nav-button-mobile">Home</a>
+            <a href="#event" class="nav-button-mobile">Event</a>
+            <a href="#tentang-kami" class="nav-button-mobile">Tentang Kami</a>
+            <a href="#donasi" class="nav-button-mobile">Donasi</a>
+            <a href="#kontak" class="nav-button-mobile">Kontak</a>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section id="home" class="relative h-screen bg-cover bg-center flex items-center justify-center" style="background-image: url('https://source.unsplash.com/1920x1080/?turtle,beach,sunrise');">
+            <div class="absolute inset-0 bg-gradient-to-t from-emerald-500/30 to-transparent"></div>
+            <div class="relative z-10 text-center text-white px-4">
+                <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-slate-800" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Melestarikan Penyu, Menjaga Masa Depan Laut</h1>
+                <p class="mt-4 max-w-3xl mx-auto text-lg md:text-xl text-slate-700">
+                    Bergabunglah dengan Komunitas Lima Putra Pesisir dalam misi mulia melindungi habitat penyu di Pantai Lowita, Sulawesi Selatan.
+                </p>
+                <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+                    <a href="#event" class="w-full sm:w-auto inline-block px-10 py-4 bg-pink-500 text-white font-bold rounded-full hover:bg-pink-600 transition duration-300 shadow-lg transform hover:scale-105">Jelajahi Kegiatan</a>
+                    <a href="#donasi" class="w-full sm:w-auto inline-block px-10 py-4 bg-emerald-500 text-white font-bold rounded-full hover:bg-emerald-600 transition duration-300 shadow-lg transform hover:scale-105">Donasi Sekarang</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Event Section -->
+        <section id="event" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                 <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold text-slate-800">Event & Kegiatan Kami</h2>
+                    <p class="mt-2 text-slate-600">Aksi nyata kami untuk konservasi.</p>
+                </div>
+                <div id="event-slider" class="relative overflow-hidden">
+                    <div id="event-container" class="flex transition-transform duration-500 ease-in-out">
+                        <!-- Events will be populated by JavaScript -->
+                    </div>
+                </div>
+                 <div class="flex justify-center mt-8 space-x-3">
+                    <button id="prev-event" class="slider-btn"><i class="fas fa-arrow-left"></i></button>
+                    <button id="next-event" class="slider-btn"><i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Us Section -->
+        <section id="tentang-kami" class="py-20 bg-emerald-50">
+            <div class="container mx-auto px-6">
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    <div class="order-2 md:order-1">
+                        <div class="rounded-xl overflow-hidden shadow-2xl transform hover:scale-105 transition-transform duration-500">
+                             <img src="lpp.jpg" alt="Tim Lima Putra Pesisir" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    <div class="order-1 md:order-2">
+                        <h2 class="text-4xl font-bold text-slate-800 mb-4">Profil Lima Putra Pesisir</h2>
+                        <div class="space-y-4 text-slate-700 leading-relaxed">
+                             <p>
+                                Lima Putra Pesisir adalah kelompok masyarakat yang bergerak di bidang pelestarian lingkungan, khususnya konservasi penyu dan habitatnya di Pantai Lowita, Desa Wiringtasi, Kecamatan Suppa, Pinrang, Sulawesi Selatan.
+                            </p>
+                            <p>
+                                Berawal dari kepedulian terhadap banyaknya telur penyu yang diambil, kami aktif melakukan patroli, merelokasi sarang telur ke tempat yang aman (hatchery semi-alami), dan melepasliarkan tukik kembali ke laut. Kami juga aktif dalam kegiatan edukasi, transplantasi terumbu karang, dan penanaman mangrove untuk menjaga ekosistem pesisir.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Donation Section -->
+        <section id="donasi" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold text-slate-800">Dukung Aksi Kami</h2>
+                    <p class="mt-2 text-slate-600">Setiap donasi Anda sangat berarti untuk kelestarian penyu dan ekosistem pesisir.</p>
+                </div>
+                <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-10 items-center bg-emerald-50 p-8 rounded-2xl shadow-lg">
+                    <div class="text-slate-700">
+                        <h3 class="text-2xl font-bold mb-4 text-emerald-700">Mengapa Donasi Anda Penting?</h3>
+                        <p class="mb-4">
+                            Donasi Anda akan digunakan untuk mendukung berbagai kegiatan konservasi, seperti patroli pantai, pemindahan sarang telur, penyediaan peralatan hatchery, hingga program edukasi bagi masyarakat lokal dan pelajar.
+                        </p>
+                        <p>
+                            Bersama, kita bisa memastikan setiap tukik memiliki kesempatan untuk kembali ke laut dan menjaga populasi penyu untuk generasi yang akan datang.
+                        </p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-inner text-center">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-800">Salurkan Donasi Anda</h3>
+                        <img src="donasi_qris.png" alt="QRIS Donasi Lima Putra Pesisir" class="mx-auto w-full max-w-[250px] h-auto rounded-lg mb-4">
+                        <p class="font-semibold text-slate-600">Atau transfer melalui:</p>
+                        <p class="mt-1 text-lg font-bold text-emerald-800">BRI: 066401018785502</p>
+                        <p class="text-md text-slate-500">(a.n. Renaldi)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="kontak" class="py-20 bg-emerald-500 text-white">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-4xl font-bold mb-4">Hubungi Kami</h2>
+                <p class="max-w-xl mx-auto mb-8 text-emerald-100">
+                    Tertarik untuk menjadi volunteer, donasi, atau ingin tahu lebih banyak tentang kegiatan kami? Jangan ragu untuk menghubungi kami.
+                </p>
+                <div class="flex justify-center items-center space-x-6 sm:space-x-8">
+                     <a href="https://www.instagram.com/lima_putra.pesisir/" target="_blank" class="social-link"><i class="fab fa-instagram fa-2x"></i></a>
+                     <a href="https://www.youtube.com/channel/UCa2XKCFfqnbMTtNWlmiCyLg" target="_blank" class="social-link"><i class="fab fa-youtube fa-2x"></i></a>
+                     <a href="https://www.facebook.com/limaputrapesisir/" target="_blank" class="social-link"><i class="fab fa-facebook fa-2x"></i></a>
+                     <a href="https://wa.me/6285348339828" target="_blank" class="social-link"><i class="fab fa-whatsapp fa-2x"></i></a>
+                     <a href="mailto:limaputrapesisir@gmail.com" class="social-link"><i class="fas fa-envelope fa-2x"></i></a>
+                </div>
+                 <div class="mt-12">
+                    <h3 class="text-2xl font-bold mb-4">Lokasi Kami</h3>
+                    <div class="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.291771124408!2d119.5786311740924!3d-4.717148895180631!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dbe7601f00885f1%3A0x6b7776b7e0d37e6d!2sRumah%20Penyu%20Pantai%20Lowita!5e0!3m2!1sen!2sid!4v1729399885834!5m2!1sen!2sid" width="100%" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                     <p class="mt-4 text-emerald-200">Pantai Lowita, Desa Wiringtasi, Kec. Suppa, Kab. Pinrang, Sulawesi Selatan</p>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-emerald-600 text-white py-6">
+        <div class="container mx-auto px-6 text-center text-emerald-200">
+            <p>&copy; 2025 Lima Putra Pesisir. Dibuat dengan semangat konservasi.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
