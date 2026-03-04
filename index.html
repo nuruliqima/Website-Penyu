@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoring Inkubator Telur Penyu</title>
+    <title>Monitoring Inkubator Telur Puyuh</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Slate, Amber & Blue -->
-    <!-- Application Structure Plan: Aplikasi ini dirancang sebagai sistem monitoring real-time satu halaman. Struktur informasinya dibagi menjadi: 1) Kontrol Mode (Jantan/Betina/Normal) sebagai input setpoint untuk mikrokontroler. 2) Status Perangkat untuk indikator visual aktuator (Lampu/Kipas). 3) Gauges untuk pembacaan instan suhu dan kelembaban. 4) Grafik Tren interaktif yang mendukung scroll horizontal dengan batas 25 titik data. Struktur ini dipilih agar pengguna bisa melihat data histori yang lebih panjang tanpa membuat grafik terlihat penuh/menumpuk. -->
-    <!-- Visualization & Content Choices: 1) Doughnut Chart (Canvas) untuk Gauge Suhu/Kelembaban. 2) Status Indicators (HTML/CSS) untuk ON/OFF aktuator. 3) Line Chart (Canvas) di dalam container scrollable -> Memberikan ruang lebih luas untuk titik data sehingga tidak menumpuk, dengan interaksi tooltip saat titik ditekan. Update dilakukan setiap 5 detik. -->
+    <!-- Application Structure Plan: SPA ini dirancang untuk monitoring real-time dengan "Fixed Y-Axes". Struktur utamanya menggunakan layout flexbox untuk bagian tren: 1) Kolom kiri statis untuk skala Suhu. 2) Area tengah scrollable untuk data grafik dan Waktu. 3) Kolom kanan statis untuk skala Kelembaban. Interval update diatur menjadi 5 detik dengan batas 25 titik data sesuai permintaan terbaru. -->
+    <!-- Visualization & Content Choices: 1) Doughnut Chart (Canvas) untuk Gauge. 2) Status Indicators (HTML/CSS) untuk aktuator. 3) Line Chart (Canvas) dengan Y-axis statis (judul dan angka skala tetap di tempat saat digeser). Titik data bulat interaktif tetap dipertahankan dengan tooltip detail. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -25,7 +25,6 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
             border: 1px solid #e2e8f0;
             padding: 1.5rem;
-            transition: all 0.3s ease;
         }
         .btn-mode {
             transition: all 0.2s ease;
@@ -34,7 +33,7 @@
         }
         .btn-active {
             background-color: #334155;
-            color: rgb(243, 0, 0);
+            color: white;
             border-color: #334155;
             box-shadow: 0 4px 12px rgba(51, 65, 85, 0.25);
         }
@@ -57,27 +56,62 @@
             border-radius: 50%;
             display: inline-block;
         }
-        /* Style untuk grafik yang bisa digeser */
-        .chart-scroll-container {
-            width: 100%;
+
+        /* Fixed Y-Axis Layout */
+        .trend-container {
+            display: flex;
+            align-items: flex-start;
+            height: 400px;
+            position: relative;
+        }
+        .y-axis-static {
+            width: 60px;
+            height: 330px; /* Sesuai area grafik di canvas */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 35px; /* Kompensasi untuk area label X */
+            background: white;
+            z-index: 10;
+        }
+        .axis-title {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            color: #64748b;
+        }
+        .scale-numbers {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-align: right;
+            padding: 5px 0;
+        }
+
+        .scroll-chart-area {
+            flex: 1;
             overflow-x: auto;
             position: relative;
             scrollbar-width: thin;
             scrollbar-color: #cbd5e1 #f1f5f9;
         }
-        .chart-scroll-container::-webkit-scrollbar {
+        .scroll-chart-area::-webkit-scrollbar {
             height: 6px;
         }
-        .chart-scroll-container::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        .chart-scroll-container::-webkit-scrollbar-thumb {
+        .scroll-chart-area::-webkit-scrollbar-thumb {
             background-color: #cbd5e1;
             border-radius: 20px;
         }
         .chart-inner-wrapper {
-            height: 350px;
-            min-width: 100%; /* Akan diperbarui via JS berdasarkan jumlah data */
+            height: 380px;
+            /* Width akan diatur dinamis via JS agar per titik punya ruang luas */
         }
     </style>
 </head>
@@ -85,9 +119,9 @@
 
     <div class="max-w-6xl mx-auto">
         
-        <!-- Header & Control Buttons -->
+        <!-- Header & Kontrol -->
         <header class="mb-8 text-center">
-            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-6 uppercase tracking-tight">Sistem Monitoring Inkubator</h1>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-6 uppercase tracking-tight">Monitoring Inkubator Puyuh</h1>
             <div class="flex flex-wrap justify-center gap-3">
                 <button id="btn-jantan" onclick="updateMode('jantan')" class="btn-mode px-6 py-3 rounded-2xl text-sm bg-white hover:border-slate-400">
                     MODE JANTAN (< 27°C)
@@ -102,10 +136,8 @@
             <p id="info-status" class="mt-4 text-slate-500 font-medium"></p>
         </header>
 
-        <!-- Main Dashboard Grid -->
+        <!-- Status & Gauges -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            
-            <!-- Card: Status Perangkat -->
             <div class="card flex flex-col justify-center">
                 <h3 class="text-center text-slate-500 font-bold uppercase text-xs tracking-widest mb-6">Status Perangkat</h3>
                 <div class="space-y-6 px-4">
@@ -126,7 +158,6 @@
                 </div>
             </div>
 
-            <!-- Card: Suhu Gauge -->
             <div class="card text-center">
                 <h3 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4">Suhu Real-Time</h3>
                 <div class="gauge-container">
@@ -135,7 +166,6 @@
                 </div>
             </div>
 
-            <!-- Card: Kelembaban Gauge -->
             <div class="card text-center">
                 <h3 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4">Kelembaban Real-Time</h3>
                 <div class="gauge-container">
@@ -143,23 +173,43 @@
                     <div id="displayHumid" class="gauge-text text-blue-600">--.-%</div>
                 </div>
             </div>
-
         </div>
 
-        <!-- Section: Tren Data (Scrollable) -->
+        <!-- Tren Data dengan Fixed Axes -->
         <div class="card">
-            <h3 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-4 text-center">Tren Data (Geser untuk Histori)</h3>
-            <div id="scrollContainer" class="chart-scroll-container">
-                <div id="chartScrollArea" class="chart-inner-wrapper">
-                    <canvas id="historyChart"></canvas>
+            <h3 class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-6 text-center">Tren Data (Geser untuk Histori)</h3>
+            
+            <div class="trend-container">
+                <!-- Sumbu Y Kiri Statis (Suhu) -->
+                <div class="y-axis-static">
+                    <div class="axis-title text-orange-500">Suhu (°C)</div>
+                    <div class="scale-numbers">
+                        <span>40</span><span>38</span><span>36</span><span>34</span><span>32</span><span>30</span><span>28</span><span>26</span><span>24</span><span>22</span><span>20</span>
+                    </div>
+                </div>
+
+                <!-- Area Grafik Scrollable -->
+                <div id="scrollContainer" class="scroll-chart-area">
+                    <div id="chartScrollArea" class="chart-inner-wrapper">
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sumbu Y Kanan Statis (Kelembaban) -->
+                <div class="y-axis-static">
+                    <div class="axis-title text-blue-600" style="writing-mode: vertical-lr; transform: rotate(0deg);">Kelembaban (%)</div>
+                    <div class="scale-numbers">
+                        <span>80</span><span>74</span><span>68</span><span>62</span><span>56</span><span>50</span><span>44</span><span>38</span><span>32</span><span>26</span><span>20</span>
+                    </div>
                 </div>
             </div>
-            <div class="mt-6 flex flex-wrap justify-center gap-8 text-xs font-bold uppercase tracking-wider">
+
+            <div class="mt-4 flex justify-center gap-8 text-[10px] font-bold uppercase tracking-wider">
                 <div class="flex items-center gap-2 text-orange-500">
-                    <div class="w-8 h-1 bg-orange-500 rounded-full"></div> Suhu (°C)
+                    <div class="w-6 h-1 bg-orange-500 rounded-full"></div> Suhu
                 </div>
                 <div class="flex items-center gap-2 text-blue-600">
-                    <div class="w-8 h-1 bg-blue-600 rounded-full"></div> Kelembaban (%)
+                    <div class="w-6 h-1 bg-blue-600 rounded-full"></div> Kelembaban
                 </div>
             </div>
         </div>
@@ -167,11 +217,10 @@
     </div>
 
     <script>
-        // Konfigurasi Target Sesuai Permintaan
         const MODE_SETTINGS = {
-            'jantan': { target: 26.5, info: "Menjaga suhu ideal Jantan: < 27.0°C" },
-            'betina': { target: 29.5, info: "Menjaga suhu ideal Betina: < 30.0°C" },
-            'normal': { target: 29.0, info: "Menjaga suhu ideal Normal: 29.0°C" }
+            'jantan': { target: 26.5, info: "Target Suhu Jantan: < 27.0°C" },
+            'betina': { target: 29.5, info: "Target Suhu Betina: < 30.0°C" },
+            'normal': { target: 29.0, info: "Target Suhu Normal: 29.0°C" }
         };
 
         let currentMode = 'normal';
@@ -181,10 +230,9 @@
         let dataTemp = [];
         let dataHumid = [];
         
-        // Batasan data yang ditampilkan diperbarui menjadi 25 titik
         const MAX_POINTS = 25; 
 
-        // Inisialisasi Chart.js Gauges
+        // Inisialisasi Gauges
         const initGauge = (id, color, max) => {
             return new Chart(document.getElementById(id), {
                 type: 'doughnut',
@@ -209,7 +257,7 @@
         const gaugeT = initGauge('canvasTemp', '#f97316', 50);
         const gaugeH = initGauge('canvasHumid', '#2563eb', 100);
 
-        // Inisialisasi Grafik Tren
+        // Inisialisasi Grafik Tren (Tanpa Label Y karena sudah dibuat manual secara statis)
         const ctxTrend = document.getElementById('historyChart').getContext('2d');
         const trendChart = new Chart(ctxTrend, {
             type: 'line',
@@ -249,13 +297,14 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 15, bottom: 5 }
+                },
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
                         backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        titleFont: { size: 14, weight: '700' },
-                        bodyFont: { size: 14 },
                         padding: 12,
                         displayColors: true,
                         callbacks: {
@@ -265,23 +314,21 @@
                 },
                 scales: {
                     x: { 
-                        grid: { display: false }, 
-                        ticks: { font: { weight: '600' } }
+                        grid: { display: true, color: '#f1f5f9' }, 
+                        ticks: { font: { weight: '600', size: 10 } }
                     },
                     y: { 
-                        type: 'linear', position: 'left', min: 20, max: 40,
-                        title: { display: true, text: 'Suhu (°C)', font: { weight: 'bold' } }
+                        display: false, // Disembunyikan karena sudah ada versi statis
+                        min: 20, max: 40 
                     },
                     y1: { 
-                        type: 'linear', position: 'right', min: 20, max: 80,
-                        grid: { drawOnChartArea: false },
-                        title: { display: true, text: 'Kelembaban (%)', font: { weight: 'bold' } }
+                        display: false, // Disembunyikan karena sudah ada versi statis
+                        min: 20, max: 80 
                     }
                 }
             }
         });
 
-        // Fungsi Ganti Mode
         window.updateMode = (mode) => {
             currentMode = mode;
             document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('btn-active'));
@@ -313,33 +360,28 @@
             // Update Teks & Gauges
             document.getElementById('displayTemp').textContent = `${sensorTemp.toFixed(1)}°C`;
             document.getElementById('displayHumid').textContent = `${sensorHumid.toFixed(1)}%`;
-            
             gaugeT.data.datasets[0].data = [sensorTemp, 50 - sensorTemp];
             gaugeT.update('none');
-            
             gaugeH.data.datasets[0].data = [sensorHumid, 100 - sensorHumid];
             gaugeH.update('none');
 
             // Update Grafik Tren
             const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             
-            // Batasi data historis menjadi 25 titik
             if (labels.length >= MAX_POINTS) {
                 labels.shift();
                 dataTemp.shift();
                 dataHumid.shift();
             }
-            
             labels.push(timestamp);
             dataTemp.push(sensorTemp);
             dataHumid.push(sensorHumid);
 
-            // Dynamically adjust the width of the chart to prevent overlapping
-            const pointSpacing = 60; // Sedikit lebih renggang karena hanya 25 titik
+            // Atur lebar grafik agar bergeser
             const scrollArea = document.getElementById('chartScrollArea');
+            const pointSpacing = 70; // Jarak antar titik cukup lebar agar tidak menumpuk
             const calculatedWidth = labels.length * pointSpacing;
             
-            // Hanya buat lebar bertambah jika melebihi lebar kontainer aslinya
             if (calculatedWidth > scrollArea.parentElement.offsetWidth) {
                 scrollArea.style.width = calculatedWidth + 'px';
             } else {
@@ -348,14 +390,13 @@
 
             trendChart.update('none');
 
-            // Auto-scroll ke paling kanan agar data terbaru terlihat
+            // Auto-scroll ke paling kanan (data terbaru)
             const container = document.getElementById('scrollContainer');
             container.scrollLeft = container.scrollWidth;
         }
 
         updateMode('normal');
-        // Interval diperbarui menjadi 5 detik (5000ms)
-        setInterval(mainLoop, 5000); 
+        setInterval(mainLoop, 5000); // Update tiap 5 detik
     </script>
 </body>
 </html>
